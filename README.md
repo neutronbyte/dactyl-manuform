@@ -1,9 +1,3 @@
-<!-- PROJECT SHIELDS -->
-[![Forks][forks-shield]][forks-url]
-[![License][license-shield]][license-url]
-
-
-
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -69,15 +63,6 @@ The generated models are distributed under the [Creative Commons Attribution-Sha
 <!-- CONTACT -->
 ## Contact
 
-Neutron Byte - neutronbyte@gmail.com
+Neutron Byte - neutronbyte.com
 
 Project Link: [https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5](https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5)
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[forks-shield]: https://img.shields.io/github/forks/neutronbyte/repo.svg?style=for-the-badge
-[forks-url]: https://github.com/new-ion/dactyl-manuform/tree/modular
-[license-shield]: https://img.shields.io/github/license/neutronbyte/repo.svg?style=for-the-badge
-[license-url]: https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5/blob/master/LICENSE
-[product-screenshot]: images/1.png
