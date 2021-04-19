@@ -1,8 +1,5 @@
 <!-- PROJECT SHIELDS -->
-[![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
 [![License][license-shield]][license-url]
 
 
@@ -79,14 +76,8 @@ Project Link: [https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/neutronbyte/repo.svg?style=for-the-badge
-[contributors-url]: https://github.com/neutronbyte/repo/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/neutronbyte/repo.svg?style=for-the-badge
-[forks-url]: https://github.com/neutronbyte/repo/network/members
-[stars-shield]: https://img.shields.io/github/stars/neutronbyte/repo.svg?style=for-the-badge
-[stars-url]: https://github.com/neutronbyte/repo/stargazers
-[issues-shield]: https://img.shields.io/github/issues/neutronbyte/repo.svg?style=for-the-badge
-[issues-url]: https://github.com/neutronbyte/repo/issues
+[forks-url]: https://github.com/new-ion/dactyl-manuform/tree/modular
 [license-shield]: https://img.shields.io/github/license/neutronbyte/repo.svg?style=for-the-badge
-[license-url]: https://github.com/neutronbyte/repo/blob/master/LICENSE.txt
+[license-url]: https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5/blob/master/LICENSE
 [product-screenshot]: images/1.png
