@@ -63,6 +63,10 @@ The generated models are distributed under the [Creative Commons Attribution-Sha
 <!-- CONTACT -->
 ## Contact
 
-Neutron Byte - neutronbyte.com
-
+Neutron Byte - <a href="https://neutronbyte.com/">neutronbyte.com</a>
 Project Link: [https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5](https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5)
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[product-screenshot]: images/1.png
