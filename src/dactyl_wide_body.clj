@@ -93,7 +93,19 @@
               
               (def wall-z-offset -8)                 ; length of the first downward-sloping part of the wall (negative)
               (def wall-xy-offset 7)                  ; offset in the x and/or y direction for the first downward-sloping part of the wall (negative)
-              (def wall-thickness 2)                  ; wall thickness parameter; originally 5
+              (def wall-thickness 2.1)                  ; wall thickness parameter; originally 5
+
+              (def left-wall-x-offset 8)
+              (def left-wall-z-offset  3)
+
+               ; Screw insert definition & position
+              (def screw-i-p (to-array-2d [
+                [7 5 77]
+                [-4 19 77]
+                [-86 -3 14]
+                [-3 9 3]
+                [5 11 33]
+              ]))
               
               ;; Settings for column-style == :fixed
               ;; The defaults roughly match Maltron settings
@@ -135,6 +147,9 @@
               (def mount-width (+ keyswitch-width 4.2))
               (def mount-height (+ keyswitch-height 2.7))
               (def box-width 3.5)
+              (def pcb-thickness (+ 1.6 0.2))
+              (def pcb-holder-thickness 2.9)
+
               (def single-plate
                 (let [top-wall (->> (cube (+ keyswitch-width (* box-width 2)) 1.5 plate-thickness)
                                     (translate [0
@@ -152,15 +167,92 @@
                                                            0
                                                            (/ side-nub-thickness 2)])))
                                     (translate [0 0 (- plate-thickness side-nub-thickness)]))
-                      plate-half (union top-wall left-wall (if create-side-nubs? (with-fn 100 side-nub)))
+
+
+                      pcb-holder-0 (->> (binding [*fn* 30] (cylinder pcb-holder-thickness pcb-thickness))
+                          (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* (/ pcb-thickness  2) -1 )])
+                        )
+                      pcb-holder-0-1 (->> (binding [*fn* 30] (cylinder 2.5 2.2))
+                        (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* (/ 2.2 2) 1 )])
+                      )
+                      pcb-holder-0-2 (->> (binding [*fn* 30] (cylinder 2.5 2.2))
+                        (translate [(+ (/ 18 2)) (* (+ (/ 18 2)) -1) (* (/ 2.2 2) 1 )])
+                      )
+                      pcb-holder-0-mirrored (->> (union 
+                          pcb-holder-0
+                          pcb-holder-0-1
+                          pcb-holder-0-2
+                          (->> 
+                            pcb-holder-0
+                              (mirror [0 1 0])))
+                      )
+
+                      pcb-holder-1 (->> (binding [*fn* 30] (cylinder pcb-holder-thickness 0.1))
+                                    (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* pcb-thickness -1 )])
+                                  )
+                    
+                      pcb-holder-2 (->> (binding [*fn* 30] (cylinder (+ pcb-holder-thickness 0.1) 0.1))
+                                    (translate [(+ (/ 18 2)) (+ (/ 18 2)) (- (* pcb-thickness -1 ) (/ pcb-thickness 2))])
+                                  )
+
+                      pcb-holder-3 (->> (binding [*fn* 30] (cylinder 2.325 0.1))
+                                    (translate [(+ (/ 18 2)) (+ (/ 18 2)) (- (* pcb-thickness -1 ) pcb-thickness)])
+                                  )
+
+                      pcb-holder-1-2-mirrored (->> (union (hull pcb-holder-1 pcb-holder-2 pcb-holder-3)
+                        (->> (hull pcb-holder-1 pcb-holder-2 pcb-holder-3)
+                              (mirror [0 1 0]))))
+
+                      pcb-holder-cutter1 (->> (cube 26 8 16)
+                                    (translate [0
+                                              (/ (+ 18 8) 2)
+                                                0]))
+                      pcb-holder-cutter2 (->> (cube 8 26  16)
+                                    (translate [(/ (+ 18 8) 2) 
+                                                0
+                                                0]))
+
+                      pcb-holder-mirrored(->> (difference 
+                        (union 
+                          pcb-holder-0-mirrored 
+                          pcb-holder-1-2-mirrored
+                        ) 
+                        (union 
+                          pcb-holder-cutter1 
+                          (->> pcb-holder-cutter1
+                                  (mirror [0 1 0])
+                          )
+                          pcb-holder-cutter2 
+                          (->> pcb-holder-cutter2
+                                  (mirror [0 1 0])
+                          )
+                        )
+                        )
+                      )
+
+
+                      plate-half (union 
+                        top-wall 
+                        left-wall 
+                        (if create-side-nubs? (with-fn 100 side-nub))
+                        pcb-holder-mirrored  
+                      )
+
+                     
+
+
                       top-nub (->> (cube 5 5 retention-tab-hole-thickness)
                                    (translate [(+ (/ keyswitch-width 2.5)) 0 (/ retention-tab-hole-thickness 2)]))
                       top-nub-pair (union top-nub
                                           (->> top-nub
                                                (mirror [1 0 0])
-                                               (mirror [0 1 0])))]
+                                               (mirror [0 1 0])))
+
+                      ]
+                      
                       (difference
-                        (union plate-half
+                        (union 
+                          plate-half
                               (->> plate-half
                                   (mirror [1 0 0])
                                   (mirror [0 1 0])))
@@ -168,6 +260,67 @@
                             (rotate (/ π 2) [0 0 1])
                           )
                       )
+                )
+              )
+
+              (def single-pcb
+                (let [pcb (->> (cube 18 18 2)
+                            (translate [0
+                                        0
+                                        ( * 2 -1/2 )])
+                            (color [220/255 163/255 163/255 1])
+                      )
+                  ]
+                  (union 
+                    pcb
+                  )
+                )
+              )
+
+              (def single-pcb-fix
+                (let [
+                    pcb (->> (cube (+ (+ keyswitch-width (* box-width 2)) 2.5) (+ 1.5 1) (+ plate-thickness 4))
+                              (translate [
+                                          1.25
+                                          (- (- (/ 1.5 2) (/ keyswitch-height 2)) 2)
+                                          (/ (- plate-thickness 4) 2)
+                                          ])
+                                          ;; (color [163/255 220/255  163/255 1])
+                    )
+                    top-nub (->> (cube 5 5 retention-tab-hole-thickness)
+                                   (translate [(+ (/ keyswitch-width 2.5)) 0 (/ retention-tab-hole-thickness 2)]))
+                      top-nub-pair (union top-nub
+                                          (->> top-nub
+                                               (mirror [1 0 0])
+                                               (mirror [0 1 0])))
+                  ]
+                  (difference
+                    (union 
+                      pcb
+                    )
+                    (->> top-nub-pair
+                            (rotate (/ π 2) [0 0 1])
+                          )
+                  )
+                )
+              )
+
+              (def single-pcb-top-nub-fix
+                (let [
+                    
+                    top-nub (->> (cube 5 5 retention-tab-hole-thickness)
+                                   (translate [(+ (/ keyswitch-width 2.5)) 0 (/ retention-tab-hole-thickness 2)]))
+                      top-nub-pair (union top-nub
+                                          (->> top-nub
+                                               (mirror [1 0 0])
+                                               (mirror [0 1 0])))
+                  ]
+                  (union
+                  
+                    (->> top-nub-pair
+                            (rotate (/ π 2) [0 0 1])
+                          )
+                  )
                 )
               )
               
@@ -190,15 +343,90 @@
                                                               0
                                                               (/ side-nub-thickness 2)])))
                                       (translate [0 0 (- plate-thickness side-nub-thickness)]))
-                          plate-half (union top-wall left-wall (if create-side-nubs? (with-fn 100 side-nub)))
+
+
+                          pcb-holder-0 (->> (binding [*fn* 30] (cylinder pcb-holder-thickness pcb-thickness))
+                              (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* (/ pcb-thickness  2) -1 )])
+                            )
+                          pcb-holder-0-1 (->> (binding [*fn* 30] (cylinder 2.5 2.2))
+                            (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* (/ 2.2 2) 1 )])
+                          )
+                          pcb-holder-0-2 (->> (binding [*fn* 30] (cylinder 2.5 2.2))
+                            (translate [(+ (/ 18 2)) (* (+ (/ 18 2)) -1) (* (/ 2.2 2) 1 )])
+                          )
+                          pcb-holder-0-mirrored (->> (union 
+                              pcb-holder-0
+                              pcb-holder-0-1
+                              pcb-holder-0-2
+                              (->> 
+                                pcb-holder-0
+                                  (mirror [0 1 0])))
+                          )
+
+                          pcb-holder-1 (->> (binding [*fn* 30] (cylinder pcb-holder-thickness 0.1))
+                                        (translate [(+ (/ 18 2)) (+ (/ 18 2)) (* pcb-thickness -1 )])
+                                      )
+                        
+                          pcb-holder-2 (->> (binding [*fn* 30] (cylinder (+ pcb-holder-thickness 0.1) 0.1))
+                                        (translate [(+ (/ 18 2)) (+ (/ 18 2)) (- (* pcb-thickness -1 ) (/ pcb-thickness 2))])
+                                      )
+
+                          pcb-holder-3 (->> (binding [*fn* 30] (cylinder 2.325 0.1))
+                                        (translate [(+ (/ 18 2)) (+ (/ 18 2)) (- (* pcb-thickness -1 ) pcb-thickness)])
+                                      )
+
+                          pcb-holder-1-2-mirrored (->> (union (hull pcb-holder-1 pcb-holder-2 pcb-holder-3)
+                            (->> (hull pcb-holder-1 pcb-holder-2 pcb-holder-3)
+                                  (mirror [0 1 0]))))
+
+                          pcb-holder-cutter1 (->> (cube 26 8 16)
+                                        (translate [0
+                                                  (/ (+ 18 8) 2)
+                                                    0]))
+                          pcb-holder-cutter2 (->> (cube 8 26  16)
+                                        (translate [(/ (+ 18 8) 2) 
+                                                    0
+                                                    0]))
+
+                          pcb-holder-mirrored(->> (difference 
+                            (union 
+                              pcb-holder-0-mirrored 
+                              pcb-holder-1-2-mirrored
+                            ) 
+                            (union 
+                              pcb-holder-cutter1 
+                              (->> pcb-holder-cutter1
+                                      (mirror [0 1 0])
+                              )
+                              pcb-holder-cutter2 
+                              (->> pcb-holder-cutter2
+                                      (mirror [0 1 0])
+                              )
+                            )
+                            )
+                          )
+                          
+                         
+
+                          plate-half (union 
+                            top-wall 
+                            left-wall 
+                            (if create-side-nubs? (with-fn 100 side-nub))
+                            pcb-holder-mirrored  
+                          )
+
                           top-nub (->> (cube 5 5 retention-tab-hole-thickness)
                                       (translate [(+ (/ keyswitch-width 2.5)) 0 (/ retention-tab-hole-thickness 2)]))
                           top-nub-pair (union top-nub
                                               (->> top-nub
                                                   (mirror [1 0 0])
-                                                  (mirror [0 1 0])))]
+                                                  (mirror [0 1 0])))
+                       
+                      ]
                       (difference
-                        (union plate-half
+                        (union 
+                          
+                          plate-half
                               (->> plate-half
                                   (mirror [1 0 0])
                                   (mirror [0 1 0])))
@@ -353,6 +581,58 @@
                          (->> single-plate
                               ;                (rotate (/ π 2) [0 0 1])
                               (key-place column row)))))
+                (def pcb-holes
+                (apply union
+                       (for [column columns
+                             row rows
+                             :when (or (.contains [(+ innercol-offset 2) (+ innercol-offset 3)] column)
+                                       (and (.contains [(+ innercol-offset 4) (+ innercol-offset 5)] column) (true? extra-row) (= ncols (+ innercol-offset 6)))
+                                       (and (.contains [(+ innercol-offset 4)] column) (true? extra-row) (= ncols (+ innercol-offset 5)))
+                                       (and (true? inner-column) (not= row cornerrow)(= column 0))
+                                       (not= row lastrow))]
+                         (->> single-pcb
+                              ;                (rotate (/ π 2) [0 0 1])
+                              (key-place column row)))))
+
+                (def pcb-holes-fix
+                  (apply union
+                      (for [column columns
+                             row rows
+                             :when (or (.contains [(+ innercol-offset 2) (+ innercol-offset 3)] column)
+                                       (and (.contains [(+ innercol-offset 4) (+ innercol-offset 5)] column) (true? extra-row) (= ncols (+ innercol-offset 6)))
+                                       (and (.contains [(+ innercol-offset 4)] column) (true? extra-row) (= ncols (+ innercol-offset 5)))
+                                       (and (true? inner-column) (not= row cornerrow)(= column 0))
+                                       (not= row lastrow))
+                            ]
+                        (if (and (= column 0) (= row 2))
+                          (->> single-pcb-fix
+                                ;                (rotate (/ π 2) [0 0 1])
+                                (key-place column row)
+                          )
+                        )
+                      )
+                  )
+                )
+                (def pcb-holes-top-nub-fix
+                  (apply union
+                      (for [column columns
+                             row rows
+                             :when (or (.contains [(+ innercol-offset 2) (+ innercol-offset 3)] column)
+                                       (and (.contains [(+ innercol-offset 4) (+ innercol-offset 5)] column) (true? extra-row) (= ncols (+ innercol-offset 6)))
+                                       (and (.contains [(+ innercol-offset 4)] column) (true? extra-row) (= ncols (+ innercol-offset 5)))
+                                       (and (true? inner-column) (not= row cornerrow)(= column 0))
+                                       (not= row lastrow))
+                            ]
+                        (if (and (= column 0) (= row 2))
+                          (->> single-pcb-top-nub-fix
+                                ;                (rotate (/ π 2) [0 0 1])
+                                (key-place column row)
+                          )
+                        )
+                      )
+                  )
+                )
+
               (def caps
                 (apply union
                        (for [column columns
@@ -375,7 +655,7 @@
               ;; Web Connectors ;;
               ;;;;;;;;;;;;;;;;;;;;
               
-              (def web-thickness 3.5)
+              (def web-thickness 3)
               (def post-size 0.1)
               (def web-post (->> (cube post-size post-size web-thickness)
                                  (translate [0 0 (+ (/ web-thickness -2)
@@ -873,56 +1153,56 @@
               (def thumb-web-post-tl (translate [(+ (/ thumbplate-width -2) post-adj) (- (/ mount-height 1.965) post-adj) 0] web-post))
               (def thumb-web-post-bl (translate [(+ (/ thumbplate-width -2) post-adj) (+ (/ mount-height -1.965) post-adj) 0] web-post))
               (def thumb-web-post-br (translate [(- (/ thumbplate-width 2) post-adj) (+ (/ mount-height -1.965) post-adj) 0] web-post))
-              (comment
-                  (defn newthumb-tl-place [shape]
-                      (->> shape
-                          (rotate (deg2rad  10) [1 0 0])
-                          (rotate (deg2rad -24) [0 1 0])
-                          (rotate (deg2rad  10) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-13 -9.8 4])
-                          ))
-                  (defn newthumb-tr-place [shape]
-                      (->> shape
-                          (rotate (deg2rad  6) [1 0 0])
-                          (rotate (deg2rad -24) [0 1 0])
-                          (rotate (deg2rad  10) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-7.5 -29.5 -2])
-                          ))
-                  (defn newthumb-ml-place [shape]
-                      (->> shape
-                          (rotate (deg2rad  8) [1 0 0])
-                          (rotate (deg2rad -31) [0 1 0])
-                          (rotate (deg2rad  14) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-30.5 -17 -6])
-                          ))
-                  (defn newthumb-mr-place [shape]
-                      (->> shape
-                          (rotate (deg2rad  4) [1 0 0])
-                          (rotate (deg2rad -31) [0 1 0])
-                          (rotate (deg2rad  14) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-23.2 -36 -10.3])
-                          ))
-                  (defn newthumb-bl-place [shape]
-                      (->> shape
-                          (rotate (deg2rad   6) [1 0 0])
-                          (rotate (deg2rad -37) [0 1 0])
-                          (rotate (deg2rad  18) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-47 -23 -19])
-                          ))
-                  (defn newthumb-br-place [shape]
-                  (->> shape
-                          (rotate (deg2rad   2) [1 0 0])
-                          (rotate (deg2rad -37) [0 1 0])
-                          (rotate (deg2rad  18) [0 0 1])
-                          (translate thumborigin)
-                          (translate [-37 -42 -22])
-                          ))
-              )
+              ;; (comment
+              ;;     (defn newthumb-tl-place [shape]
+              ;;         (->> shape
+              ;;             (rotate (deg2rad  10) [1 0 0])
+              ;;             (rotate (deg2rad -24) [0 1 0])
+              ;;             (rotate (deg2rad  10) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-13 -9.8 4])
+              ;;             ))
+              ;;     (defn newthumb-tr-place [shape]
+              ;;         (->> shape
+              ;;             (rotate (deg2rad  6) [1 0 0])
+              ;;             (rotate (deg2rad -24) [0 1 0])
+              ;;             (rotate (deg2rad  10) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-7.5 -29.5 -2])
+              ;;             ))
+              ;;     (defn newthumb-ml-place [shape]
+              ;;         (->> shape
+              ;;             (rotate (deg2rad  8) [1 0 0])
+              ;;             (rotate (deg2rad -31) [0 1 0])
+              ;;             (rotate (deg2rad  14) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-30.5 -17 -6])
+              ;;             ))
+              ;;     (defn newthumb-mr-place [shape]
+              ;;         (->> shape
+              ;;             (rotate (deg2rad  4) [1 0 0])
+              ;;             (rotate (deg2rad -31) [0 1 0])
+              ;;             (rotate (deg2rad  14) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-23.2 -36 -10.3])
+              ;;             ))
+              ;;     (defn newthumb-bl-place [shape]
+              ;;         (->> shape
+              ;;             (rotate (deg2rad   6) [1 0 0])
+              ;;             (rotate (deg2rad -37) [0 1 0])
+              ;;             (rotate (deg2rad  18) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-47 -23 -19])
+              ;;             ))
+              ;;     (defn newthumb-br-place [shape]
+              ;;     (->> shape
+              ;;             (rotate (deg2rad   2) [1 0 0])
+              ;;             (rotate (deg2rad -37) [0 1 0])
+              ;;             (rotate (deg2rad  18) [0 0 1])
+              ;;             (translate thumborigin)
+              ;;             (translate [-37 -42 -22])
+              ;;             ))
+              ;; )
               
               (defn newthumb-tl-place [shape]
                 (->> shape
@@ -978,13 +1258,17 @@
                  (newthumb-mr-place shape)
                  (newthumb-br-place shape)
                  (newthumb-tl-place (rotate (/ π 1) [0 0 1] shape))
+                  (newthumb-bl-place shape)
+                 (newthumb-ml-place shape)
                 )
               )
               
               (defn newthumb-15x-layout [shape]
                 (union
                  (newthumb-bl-place shape)
-                 (newthumb-ml-place shape)))
+                 (newthumb-ml-place shape)
+                )
+              )
               
               (def newthumbcaps
                 (union
@@ -995,7 +1279,14 @@
                 (union
                  (newthumb-1x-layout thumb-plate)
                  (newthumb-15x-layout larger-plate-half)
-                 (newthumb-15x-layout thumb-plate)))
+                 (newthumb-15x-layout thumb-plate)
+                ))
+                (def newthumb-pcb
+                (union
+                 (newthumb-1x-layout single-pcb)
+                 (newthumb-15x-layout single-pcb)
+                 (newthumb-15x-layout single-pcb)
+                ))
               
               (def newthumb-connectors
                 (union
@@ -1050,7 +1341,7 @@
                       (newthumb-tl-place thumb-web-post-tr)
                       (key-place (+ innercol-offset 1) cornerrow web-post-br)
                       (key-place (+ innercol-offset 2) lastrow web-post-tl)
-                      )
+                  )
                   (triangle-hulls
                       (key-place (+ innercol-offset 2) lastrow web-post-bl)
                       (newthumb-tl-place thumb-web-post-tr)
@@ -1132,8 +1423,7 @@
               (defn bottom-hull [& p]
                 (hull p (bottom 0.001 p)))
               
-              (def left-wall-x-offset 8)
-              (def left-wall-z-offset  3)
+              
               
               (defn left-key-position [row direction]
                 (map - (key-position 0 row [(* mount-width -0.5) (* direction mount-height 0.5) 0]) [left-wall-x-offset 0 left-wall-z-offset]) )
@@ -1239,24 +1529,28 @@
                   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
                   (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
                   (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
-                  (newthumb-ml-place thumb-post-tl))
+                  (newthumb-ml-place thumb-post-tl)
+                  )
                  (hull
                   (left-key-place (- cornerrow innercol-offset) -1 web-post)
                   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
                   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate2 -1 0) web-post))
                   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
-                  (newthumb-ml-place thumb-post-tl))
+                  (newthumb-ml-place thumb-post-tl)
+                  )
                  (hull
                   (left-key-place (- cornerrow innercol-offset) -1 web-post)
                   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
                   (key-place 0 (- cornerrow innercol-offset) web-post-bl)
-                  (newthumb-ml-place thumb-post-tl))
+                  (newthumb-ml-place thumb-post-tl)
+                  )
                  (hull
                   (newthumb-bl-place thumb-post-tr)
                   (newthumb-bl-place (translate (wall-locate1 -0.3 1) thumb-post-tr))
                   (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
                   (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
-                  (newthumb-ml-place thumb-post-tl))
+                  (newthumb-ml-place thumb-post-tl)
+                  )
                  ; connectors below the inner column to the thumb & second column
                  (if (true? inner-column)
                    (union
@@ -1474,14 +1768,7 @@
               (def usb-holder-space  (translate (map + usb-holder-position [-1.5 (* -1 wall-thickness) 6.6]) usb-holder-cube))
               (def usb-holder-notch  (translate (map + usb-holder-position [-1.5 (+ 4.4 notch-offset) 6.6]) (cube 31.4 1.3 19.8))) ;31.366
               
-              ; Screw insert definition & position
-              (def screw-i-p (to-array-2d [
-                [4 -5 77]
-                [-4 19 77]
-                [-27 16 -5]
-                [-13 4 10]
-                [10 6 32]
-              ]))
+             
 
               (defn screw-insert-shape [bottom-radius top-radius height]
                 (union
@@ -1554,7 +1841,7 @@
                   (union 
                     (screw-insert-bottom 0 0 bottom-radius top-radius height [(aget screw-i-p 0 0) (aget screw-i-p 0 1) (- (+ keyboard-z-offset (aget screw-i-p 0 2)) screw-insert-body-height)])
                     (screw-insert-bottom 0 lastrow bottom-radius top-radius height [(aget screw-i-p 1 0) (aget screw-i-p 1 1) (- (+ keyboard-z-offset (aget screw-i-p 1 2)) screw-insert-body-height)])
-                    (screw-insert-bottom lastcol lastrow bottom-radius top-radius height [(aget screw-i-p 2 0) (aget screw-i-p 2 1) (- (+ keyboard-z-offset (aget screw-i-p 2 2)) screw-insert-body-height)])
+                    ;; (screw-insert-bottom lastcol lastrow bottom-radius top-radius height [(aget screw-i-p 2 0) (aget screw-i-p 2 1) (- (+ keyboard-z-offset (aget screw-i-p 2 2)) screw-insert-body-height)])
                     (screw-insert-bottom lastcol 0         bottom-radius top-radius height [(aget screw-i-p 3 0) (aget screw-i-p 3 1) (- (+ keyboard-z-offset (aget screw-i-p 3 2)) screw-insert-body-height)])
                     (screw-insert-bottom (+ 1 innercol-offset) lastrow bottom-radius top-radius height [(aget screw-i-p 4 0) (aget screw-i-p 4 1) (- (+ keyboard-z-offset (aget screw-i-p 4 2)) screw-insert-body-height)]) ;thumb
                   )
@@ -1725,29 +2012,31 @@
     (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
     (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
    (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr)))
-   (hull
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate2 -1 0) web-post))
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
-    (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
-    (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
-    (newthumb-ml-place thumb-post-tl))
-   (hull
-    (left-key-place (- cornerrow innercol-offset) -1 web-post)
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate2 -1 0) web-post))
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
-    (newthumb-ml-place thumb-post-tl))
-   (hull
-    (left-key-place (- cornerrow innercol-offset) -1 web-post)
-    (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
-    (key-place 0 (- cornerrow innercol-offset) web-post-bl)
-    (newthumb-ml-place thumb-post-tl))
-   (hull
-    (newthumb-bl-place thumb-post-tr)
-    (newthumb-bl-place (translate (wall-locate1 -0.3 1) thumb-post-tr))
-    (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
-    (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
-    (newthumb-ml-place thumb-post-tl))
+   
+  ;;  (hull
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate2 -1 0) web-post))
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
+  ;;   (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
+  ;;   (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
+  ;;   (newthumb-ml-place thumb-post-tl))
+  ;;  (hull
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 web-post)
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate2 -1 0) web-post))
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate3 -1 0) web-post))
+  ;;   (newthumb-ml-place thumb-post-tl))
+  ;;  (hull
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 web-post)
+  ;;   (left-key-place (- cornerrow innercol-offset) -1 (translate (wall-locate1 -1 0) web-post))
+  ;;   (key-place 0 (- cornerrow innercol-offset) web-post-bl)
+  ;;   (newthumb-ml-place thumb-post-tl))
+  ;;  (hull
+  ;;   (newthumb-bl-place thumb-post-tr)
+  ;;   (newthumb-bl-place (translate (wall-locate1 -0.3 1) thumb-post-tr))
+  ;;   (newthumb-bl-place (translate (wall-locate2 -0.3 1) thumb-post-tr))
+  ;;   (newthumb-bl-place (translate (wall-locate3 -0.3 1) thumb-post-tr))
+  ;;   (newthumb-ml-place thumb-post-tl))
+
    ; connectors below the inner column to the thumb & second column
    (if (true? inner-column)
      (union
@@ -1916,27 +2205,32 @@
 
 (def case-walls-body
   (union
-   thumb-wall-type
-   right-wall
-   ; back wall
-   (for [x (range 0 ncols)] (key-wall-brace-body x 0 0 1 web-post-tl x       0 0 1 web-post-tr))
-   (for [x (range 1 ncols)] (key-wall-brace-body x 0 0 1 web-post-tl (dec x) 0 0 1 web-post-tr))
-   ; left wall
-   (for [y (range 0 (- lastrow innercol-offset))] (union (wall-brace-body (partial left-key-place y 1) -1 0 web-post (partial left-key-place y -1) -1 0 web-post)
-                                                         (hull ;(key-place 0 y web-post-tl)
-                                                               ;(key-place 0 y web-post-bl)
-                                                               ;(left-key-place y  1 web-post)
-                                                               ;(left-key-place y -1 web-post)
-                                                            )
-                                                    )
-        )
-   (for [y (range 1 (- lastrow innercol-offset))] (union
-                                                   (wall-brace-body (partial left-key-place (dec y) -1) -1 0 web-post (partial left-key-place y  1) -1 0 web-post)
-                                                   (hull ;(key-place 0 y       web-post-tl)
-                                                         ;(key-place 0 (dec y) web-post-bl)
-                                                         ;(left-key-place y        1 web-post)
-                                                         ;(left-key-place (dec y) -1 web-post)
-                                                         )))
+  thumb-wall-type
+  right-wall
+  ; back wall
+  (for [x (range 0 ncols)] (key-wall-brace-body x 0 0 1 web-post-tl x       0 0 1 web-post-tr))
+  (for [x (range 1 ncols)] (key-wall-brace-body x 0 0 1 web-post-tl (dec x) 0 0 1 web-post-tr))
+  ; left wall
+  (for [y (range 0 (- lastrow innercol-offset))] 
+    (union 
+      (wall-brace-body (partial left-key-place y 1) -1 0 web-post (partial left-key-place y -1) -1 0 web-post)
+      (hull ;(key-place 0 y web-post-tl)
+            ;(key-place 0 y web-post-bl)
+            ;(left-key-place y  1 web-post)
+            ;(left-key-place y -1 web-post)
+      )
+    )
+  )
+  (for [y (range 1 (- lastrow innercol-offset))] 
+    (union
+      (wall-brace-body (partial left-key-place (dec y) -1) -1 0 web-post (partial left-key-place y  1) -1 0 web-post)
+      (hull ;(key-place 0 y       web-post-tl)
+            ;(key-place 0 (dec y) web-post-bl)
+            ;(left-key-place y        1 web-post)
+            ;(left-key-place (dec y) -1 web-post)
+      )
+    )
+  )
    (wall-brace-body (partial key-place 0 0) 0 1 web-post-tl (partial left-key-place 0 1) 0 1 web-post)
    (wall-brace-body (partial left-key-place 0 1) 0 1 web-post (partial left-key-place 0 1) -1 0 web-post)
    ; front wall
@@ -1944,7 +2238,8 @@
    (key-wall-brace-body (+ innercol-offset 3) lastrow  0 -1 web-post-br (+ innercol-offset 4) extra-cornerrow 0 -1 web-post-bl)
    (for [x (range (+ innercol-offset 4) ncols)] (key-wall-brace-body x extra-cornerrow 0 -1 web-post-bl x       extra-cornerrow 0 -1 web-post-br))
    (for [x (range (+ innercol-offset 5) ncols)] (key-wall-brace-body x extra-cornerrow 0 -1 web-post-bl (dec x) extra-cornerrow 0 -1 web-post-br))
-   ))
+  )
+)
 
 ; Offsets for the controller/trrs holder cutout
 (case nrows
@@ -1965,8 +2260,8 @@
 (def usb-holder-ref (key-position 0 0 (map - (wall-locate2  0  -1) [0 (/ mount-height 2) 0])))
 (def usb-holder-position (map + [(+ 18.8 holder-offset) 18.7 1.3] [(first usb-holder-ref) (second usb-holder-ref) 2]))
 (def usb-holder-cube   (cube 28.666 30 19.8))
-(def usb-holder-space  (translate (map + usb-holder-position [-1.5 (* -1 wall-thickness) 6.6]) usb-holder-cube))
-(def usb-holder-notch  (translate (map + usb-holder-position [-1.5 (+ 4.4 notch-offset) 6.6]) (cube 31.366 1.3 19.8)))
+(def usb-holder-space  (translate (map + usb-holder-position [6 (+ (* -1 wall-thickness) 2.5) 6.6]) usb-holder-cube))
+(def usb-holder-notch  (translate (map + usb-holder-position [6 (+ (+ 4.4 notch-offset) 2.5) 6.6]) (cube 31.366 1.3 19.8)))
 
 
 (def cube-mask
@@ -2029,11 +2324,11 @@
          (translate (map + offset [(first position) (second position) (/ height 2)])))))
 
          (defn screw-insert-all-shapes [bottom-radius top-radius height]
-  (union (screw-insert 0 0         bottom-radius top-radius height [7.7 5 0])
-         (screw-insert 0 lastrow   bottom-radius top-radius height [-10 8.5 0])
-         (screw-insert lastcol lastrow  bottom-radius top-radius height [-11 14 0])
-         (screw-insert lastcol 0         bottom-radius top-radius height [2.5 4.5 0])
-         (screw-insert (+ 1 innercol-offset) lastrow         bottom-radius top-radius height [5 -7 0])))
+  (union (screw-insert 0 0         bottom-radius top-radius height [5.7 5 0])
+         (screw-insert 0 lastrow   bottom-radius top-radius height [-29 5.5 0])
+         (screw-insert lastcol lastrow  bottom-radius top-radius height [-23 16.5 0])
+         (screw-insert lastcol 0         bottom-radius top-radius height [-13 19 0])
+         (screw-insert (+ 1 innercol-offset) lastrow         bottom-radius top-radius height [-12 -7 0])))
 
 ; Hole Depth Y: 4.4
 (def screw-insert-height 4)
@@ -2171,6 +2466,15 @@
     )
   )
 
+(def model-right-key-only (difference
+  (union
+      key-holes
+      thumb-type
+  )
+  (translate [0 0 -20] (cube 350 350 40))
+  )
+)
+
 (def model-right-total (difference
     (union
         key-holes
@@ -2181,12 +2485,37 @@
         connectors
         inner-connectors
         thumb-type
-        thumb-connector-type
+        (difference
+          (difference
+            pcb-holes-fix
+            pcb-holes
+          )
+          pcb-holes-top-nub-fix
+        )
+        (difference
+          (difference
+              (difference
+                thumb-connector-type
+                pcb-holes
+              )
+              newthumb-pcb
+            )
+          pcb-holes-top-nub-fix
+        )
         screw-insert-body
         
         ;; (difference
           (union
-            screw-insert-top
+            (union
+          screw-insert-top
+          (difference
+            (difference
+              case-walls
+              pcb-holes
+            )
+            newthumb-pcb
+          )
+        )
             case-walls
           )
         ;;   (OLED -65 -6 99)
@@ -2199,10 +2528,14 @@
             )
             case-walls-body
             case-walls
-            ;; usb-holder-space
-            ;; usb-holder-notch
+            usb-holder-space
+            usb-holder-notch
             screw-insert-holes
         )
+        
+        ;; (color [163/255 220/255 163/255  1] usb-holder-space)
+        ;; (color [163/255 220/255 163/255 1] usb-holder-notch)
+
          thumbcaps-type
          caps
     )
@@ -2219,18 +2552,47 @@
         connectors
         inner-connectors
         thumb-type
-        thumb-connector-type
-
-          (union
-            screw-insert-top
-            case-walls
+        
+        (difference
+          (difference
+            pcb-holes-fix
+            pcb-holes
           )
-
+          pcb-holes-top-nub-fix
+        )
+        (difference
+          (difference
+              (difference
+                thumb-connector-type
+                pcb-holes
+              )
+              newthumb-pcb
+            )
+          pcb-holes-top-nub-fix
+        )
+        (union
+          screw-insert-top
+          (difference
+            (difference
+              case-walls
+              pcb-holes
+            )
+            newthumb-pcb
+          )
+        )
+        
     )
     (translate [0 0 -20] (cube 350 350 40))
     ))
+(def right-pcb (difference
+    (union
+      pcb-holes
+       newthumb-pcb
+    )
+    (translate [0 0 -20] (cube 350 350 40))
+))
 
-(def model-right-body 
+(def model-right-body-temporare
   (difference
     (union
       ;thumb-connector-type
@@ -2243,6 +2605,7 @@
         )
         usb-holder-space
         usb-holder-notch
+
         screw-insert-holes
       )
        ; thumbcaps-type
@@ -2252,6 +2615,16 @@
   )
 )
 
+(def model-right-body
+  (difference 
+    model-right-body-temporare
+    (union
+      case-walls
+      screw-insert-top
+    )
+    
+  )
+)
 
 (def model-right-plate
   (union
@@ -2264,15 +2637,27 @@
     ;cube-mask
   )
 )
+
+;; (spit "things/right-wide-key-only.scad"
+;;     (write-scad model-right-key-only)
+;; )
 (spit "things/right-wide-total.scad"
     (write-scad model-right-total)
 )
+
+;; (spit "things/right-pcb.scad"
+;;     (write-scad right-pcb)
+;; )
 
 (spit "things/left-wide-total.scad"
       (write-scad (mirror [-1 0 0] model-right-total)))
 
 (spit "things/right-wide-top.scad"
     (write-scad model-right-top)
+)
+
+(spit "things/left-wide-top.scad"
+    (write-scad (mirror [-1 0 0] model-right-top))
 )
 
 ;; (spit "things/right-wide-plate.scad"
@@ -2312,6 +2697,19 @@
                                (translate [0 0 -10] screw-insert-screw-holes))))
 
        ))
+(spit "things/left-plate.scad"
+  
+  (write-scad
+    (mirror [-1 0 0]
+      (cut
+      (translate [0 0 -0.1]
+                  (difference (union case-walls
+                                    case-walls-body
+                                    screw-insert-outers)
+                              (translate [0 0 -10] screw-insert-screw-holes))))
 
+    )
+  )
+)
 
 (defn -main [dum] 1)  ; dummy to make it easier to batch
