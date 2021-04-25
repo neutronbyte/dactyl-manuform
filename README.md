@@ -2,7 +2,7 @@
 <br />
 <p align="center">
 
-  <h3 align="center">Dactyl Manuform Vertical Modular 4x5</h3>
+  <h3 align="center">Vertical Dactyl Manuform 4x5</h3>
 
   <p align="center">
     Modular 4x5 Vertical Dactyl Manuform.
@@ -15,7 +15,7 @@
 <!-- ABOUT THE PROJECT -->
 ## Features
 
-[![Dactyl Manuform Vertical Modular 4x5][product-screenshot]](https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5)
+[![Vertical Dactyl Manuform 4x5][product-screenshot]](https://github.com/neutronbyte/dactyl-manuform-vertical-modular-4x5)
 
 + 4x5 layout. 
 + Add Single switch PCB holder
